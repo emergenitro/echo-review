@@ -60,9 +60,13 @@ app.post('/api/v1/scraper', async (req, res) => {
       });
     }
 
-    const searchQuery = `${productData.title} reviews reddit`;
+    const searchQuery = `${productData.title} reviews`;
+    const alternativesQuery = `${productData.title} alternatives`;
     const googleSearchURL = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(
       searchQuery
+    )}&key=${googleSearchAPIKey}&cx=${googleSearchEngineID}`;
+    const googleAlternativesURL = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(
+      alternativesQuery
     )}&key=${googleSearchAPIKey}&cx=${googleSearchEngineID}`;
 
     const [googleResponse, alternativesResponse] = await Promise.all([
@@ -122,10 +126,6 @@ app.post('/api/v1/scraper', async (req, res) => {
     if (out.choices[0].message.content.slice(-1) !== '}') {
       out.choices[0].message.content += '}';
     }
-
-    const googleAlternativesURL = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(
-      alternativesQuery
-    )}&key=${googleSearchAPIKey}&cx=${googleSearchEngineID}`;
 
     res.json({
       success: true,
