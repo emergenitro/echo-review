@@ -2,20 +2,16 @@ const express = require('express');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const dotenv = require('dotenv');
+const cors = require('cors');
 dotenv.config();
 
-const { HfInference } = require("@huggingface/inference");
+import { HfInference } from '@huggingface/inference';
 
 const inference = new HfInference(process.env.HF_TOKEN);
 const app = express();
 
+app.use(cors());
 app.use(express.json());
-
-function unicodeToChar(text) {
-  return text.replace(/\\u[\dA-F]{4}/gi, (match) =>
-    String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16))
-  );
-}
 
 app.post('/api/v1/scraper', async (req, res) => {
   const { url } = req.body;
@@ -92,25 +88,24 @@ app.post('/api/v1/scraper', async (req, res) => {
                   "rating": X
                 }
             `
-          },
-          {
-            role: "user",
-            content: `These are the snippets of reviews about ${productData.title}. Reviews : ${reviews} `
-          },
-          
-        ],
-        max_tokens: 512,
-        temperature: 0.5,
-      });
+        },
+        {
+          role: "user",
+          content: `These are the snippets of reviews about ${productData.title}. Reviews : ${reviews} `
+        },
+      ],
+      max_tokens: 512,
+      temperature: 0.5,
+    });
 
     console.log(out.choices[0].message);
     res.json({
-        success: true,
-        data: {
-          product: productData,
-          reviews: reviews,
-          output: out.choices[0].message
-        },
+      success: true,
+      data: {
+        product: productData,
+        reviews: reviews,
+        output: out.choices[0].message
+      },
     });
   } catch (error) {
     console.error('Error fetching or parsing data:', error);
