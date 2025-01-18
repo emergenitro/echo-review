@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-b from-[#121212] to-[#131313] text-white">
+  <div class="min-h-screen bg-white text-black">
     <Navbar />
     <HeroSection />
     <FeaturesSection />
@@ -19,8 +19,5 @@ import Footer from './components/Footer.vue'
 </script>
 
 <style scoped>
-@font-face {
-  font-family: 'Phantom Sans';
-  src: url('./../public/font/PhantomSans_Bold.woff') format('woff');
-}
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap');
 </style>

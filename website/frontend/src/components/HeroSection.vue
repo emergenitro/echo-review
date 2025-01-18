@@ -1,11 +1,11 @@
 <template>
-    <section class="flex flex-col items-center justify-center text-center py-20">
-        <h1 class="text-5xl font-bold mb-8">Welcome to Echo-Review</h1>
-        <p class="text-xl mb-8">Get instant reviews and alternatives for your favorite products.</p>
-        <div class="flex w-full max-w-md">
+    <section class="flex flex-col items-center justify-center text-center py-48">
+        <h1 class="text-8xl font-extrabold mb-8 bg-gradient-to-r from-green-400 via-green-500 to-green-600 inline-block text-transparent bg-clip-text">Welcome to EchoReview</h1>
+        <p class="text-2xl font-bold text-gray-400 mb-8">Lightning-fast reviews for all of your favourite products everywhere to Echo</p>
+        <div class="flex w-full max-w-md mb-5">
             <input v-model="url" type="text" placeholder="Enter product URL"
-                class="flex-grow p-4 rounded-l-md text-black border-y-2 border-l-2" />
-            <button @click="fetchProductReview" class="bg-blue-500 text-white px-6 py-4 rounded-none rounded-r-md">
+                class="flex-grow p-4 bg-white rounded-l-md text-green-500 border-y-2 border-l-2 border-green-500 focus:border-3 focus:border-green-600" />
+            <button @click="fetchProductReview" class="text-white font-bold border-solid bg-green-500 hover:bg-green-600 transition duration-500 hover:scale-105 cursor-pointer px-6 py-4 rounded-none rounded-r-md">
                 Get Review
             </button>
         </div>
