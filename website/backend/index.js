@@ -36,6 +36,10 @@ app.post('/api/v1/scraper', async (req, res) => {
 
     const productData = {};
     productData.title = $('h1').first().text().trim() || 'N/A';
+    // If it's Amazon Prime, choose the next h1 element
+    if (productData.title.includes('Amazon Prime')) {
+      productData.title = $('h1').eq(1).text().trim() || 'N/A';
+    }
     productData.price = $('#priceblock_ourprice, #priceblock_dealprice').text().trim() || 'N/A';
     productData.description = $('#productDescription p').text().trim() || 'N/A';
     productData.image = $('#landingImage').attr('src') || 'N/A';
@@ -92,6 +96,10 @@ app.post('/api/v1/scraper', async (req, res) => {
             `
         },
         {
+          role: "system",
+          content: "Make sure you close the JSON object with a closing curly brace '}' and open it with an opening curly brace '{'. In fact, that should be the first character of your response."
+        },
+        {
           role: "user",
           content: `These are the snippets of reviews about ${productData.title}. Reviews : ${reviews} `
         },
@@ -99,6 +107,11 @@ app.post('/api/v1/scraper', async (req, res) => {
       max_tokens: 512,
       temperature: 0.5,
     });
+
+    // Check if the last character is a closing curly brace, and if not, add it
+    if (out.choices[0].message.content.slice(-1) !== '}') {
+      out.choices[0].message.content += '}';
+    }
 
     res.json({
       success: true,
