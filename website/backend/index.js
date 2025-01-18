@@ -127,6 +127,8 @@ app.post('/api/v1/scraper', async (req, res) => {
       out.choices[0].message.content += '}';
     }
 
+    const chatResponse = out.choices[0].message.content;
+
     res.json({
       success: true,
       data: {
