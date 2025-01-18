@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Page Checker</title>
+  <link rel="stylesheet" href="../tailwind.css">
+</head>
+<body class="bg-gray-100 p-4">
+  <div id="app" class="text-center">
+    <!-- Loading Spinner -->
+    <div id="loading" class="hidden">
+      <p class="text-green-600 font-bold">Loading...</p>
+      <div class="animate-spin rounded-full h-8 w-8 border-t-4 border-green-600 border-b-4 border-transparent mx-auto"></div>
+    </div>
+
+    <!-- Product Info -->
+    <div id="content" class="hidden">
+      <h3 class="text-lg font-bold text-gray-800" id="product-name"></h3>
+      <p class="text-green-600 font-bold text-xl" id="product-price"></p>
+      <p class="text-gray-600 text-sm" id="product-description"></p>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
