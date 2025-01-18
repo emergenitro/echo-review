@@ -1,10 +1,12 @@
 const express = require('express');
 const axios = require('axios');
-const { JSDOM } = require('jsdom');
+const cheerio = require('cheerio');
 const dotenv = require('dotenv');
-
 dotenv.config();
 
+const { HfInference } = require("@huggingface/inference");
+
+const inference = new HfInference(process.env.HF_TOKEN);
 const app = express();
 
 app.use(express.json());
@@ -26,33 +28,19 @@ app.post('/api/v1/scraper', async (req, res) => {
 
   try {
     // Scrape product details from the provided URL
-    const encodedURL = encodeURIComponent(url);
-    const scraperAPIURL = `http://api.scraperapi.com/?api_key=${process.env.API_KEY}&url=${encodedURL}&render=true`;
+    const scraperAPIURL = `http://api.scraperapi.com/?api_key=${process.env.API_KEY}&url=${url}`;
 
     const response = await axios.get(scraperAPIURL);
     const html = response.data;
 
     // Parse the HTML using JSDOM
-    const dom = new JSDOM(html);
-    const document = dom.window.document;
+    const $ = cheerio.load(html);
 
     const productData = {};
-    const titleElement = document.querySelectorAll('h1')[0];
-    productData.title = titleElement ? titleElement.textContent.trim() : 'N/A';
-    const priceElement =
-      document.querySelector('#priceblock_ourprice') ||
-      document.querySelector('#priceblock_dealprice');
-    productData.price = priceElement
-      ? priceElement.textContent.trim()
-      : 'N/A';
-    const descriptionElement = document.querySelector(
-      '#productDescription p'
-    );
-    productData.description = descriptionElement
-      ? descriptionElement.textContent.trim()
-      : 'N/A';
-    const imageElement = document.querySelector('#landingImage');
-    productData.image = imageElement ? imageElement.src : 'N/A';
+    productData.title = $('h1').first().text().trim() || 'N/A';
+    productData.price = $('#priceblock_ourprice, #priceblock_dealprice').text().trim() || 'N/A';
+    productData.description = $('#productDescription p').text().trim() || 'N/A';
+    productData.image = $('#landingImage').attr('src') || 'N/A';
 
     // If no title is found, return just the product data
     if (!productData.title || productData.title === 'N/A') {
@@ -79,6 +67,9 @@ app.post('/api/v1/scraper', async (req, res) => {
     const searchResults = googleResponse.data.items;
 
     // Extract relevant data from Google Search API results (only returning top 5 results for simplicity)
+    /**
+     * !Edit search number from 5 to 20
+     */
     const reviews = searchResults
       ? searchResults.slice(0, 5).map((result) => ({
         title: result.title,
@@ -87,16 +78,42 @@ app.post('/api/v1/scraper', async (req, res) => {
       }))
       : [];
 
-    // Combine product data with reviews
+    const out = await inference.chatCompletion({
+        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        messages: [
+          {
+            role: "system",
+            content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product. You must only respond with the valid JSON in this exact format:
+                {
+                  "pros": ["pro1", "pro2", "pro3"],
+                  "cons": ["con1", "con2", "con3"],
+                  "summary": "Your summary here",
+                  "detailed_review": "Your detailed review here",
+                  "rating": 4.5
+                }
+            `
+          },
+          {
+            role: "user",
+            content: `These are the snippets of reviews about ${productData.title}. Reviews : ${reviews} `
+          },
+          
+        ],
+        max_tokens: 512,
+        temperature: 0.5,
+      });
+
+    console.log(out.choices[0].message);
     res.json({
-      success: true,
-      data: {
-        product: productData,
-        reviews: reviews,
-      },
+        success: true,
+        data: {
+          product: productData,
+          reviews: reviews,
+          output: out.choices[0].message
+        },
     });
   } catch (error) {
-    console.error('Error fetching or parsing data:', error.message);
+    console.error('Error fetching or parsing data:', error);
     res
       .status(500)
       .json({
