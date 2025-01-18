@@ -1,25 +1,21 @@
-const express = require('express');
-const axios = require('axios');
-const cheerio = require('cheerio');
-const dotenv = require('dotenv');
+import express from 'express';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import dotenv from 'dotenv';
+import cors from 'cors';
 dotenv.config();
 
-const { HfInference } = require("@huggingface/inference");
+import { HfInference } from '@huggingface/inference'
 
 const inference = new HfInference(process.env.HF_TOKEN);
 const app = express();
 
+app.use(cors());
 app.use(express.json());
-
-function unicodeToChar(text) {
-  return text.replace(/\\u[\dA-F]{4}/gi, (match) =>
-    String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16))
-  );
-}
 
 app.post('/api/v1/scraper', async (req, res) => {
   const { url } = req.body;
-  console.log(req.body);
+
   if (!url) {
     return res
       .status(400)
@@ -33,11 +29,17 @@ app.post('/api/v1/scraper', async (req, res) => {
     const response = await axios.get(scraperAPIURL);
     const html = response.data;
 
+    console.log(html);
+
     // Parse the HTML using JSDOM
     const $ = cheerio.load(html);
 
     const productData = {};
     productData.title = $('h1').first().text().trim() || 'N/A';
+    // If it's Amazon Prime, choose the next h1 element
+    if (productData.title.includes('Amazon Prime')) {
+      productData.title = $('h1').eq(1).text().trim() || 'N/A';
+    }
     productData.price = $('#priceblock_ourprice, #priceblock_dealprice').text().trim() || 'N/A';
     productData.description = $('#productDescription p').text().trim() || 'N/A';
     productData.image = $('#landingImage').attr('src') || 'N/A';
@@ -79,11 +81,11 @@ app.post('/api/v1/scraper', async (req, res) => {
       : [];
 
     const out = await inference.chatCompletion({
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
-        messages: [
-          {
-            role: "system",
-            content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. You must only respond with the valid JSON in this exact format:
+      model: "meta-llama/Meta-Llama-3-8B-Instruct",
+      messages: [
+        {
+          role: "system",
+          content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. BE SPECIFIC. You must only respond with the valid JSON in this exact format:
                 {
                   "pros": ["pro1", "pro2", "pro3"],
                   "cons": ["con1", "con2", "con3"],
@@ -92,25 +94,32 @@ app.post('/api/v1/scraper', async (req, res) => {
                   "rating": X
                 }
             `
-          },
-          {
-            role: "user",
-            content: `These are the snippets of reviews about ${productData.title}. Reviews : ${reviews} `
-          },
-          
-        ],
-        max_tokens: 512,
-        temperature: 0.5,
-      });
-
-    console.log(out.choices[0].message);
-    res.json({
-        success: true,
-        data: {
-          product: productData,
-          reviews: reviews,
-          output: out.choices[0].message
         },
+        {
+          role: "system",
+          content: "Make sure you close the JSON object with a closing curly brace '}' and open it with an opening curly brace '{'. In fact, that should be the first character of your response."
+        },
+        {
+          role: "user",
+          content: `These are the snippets of reviews about ${productData.title}. Reviews : ${reviews} `
+        },
+      ],
+      max_tokens: 512,
+      temperature: 0.5,
+    });
+
+    // Check if the last character is a closing curly brace, and if not, add it
+    if (out.choices[0].message.content.slice(-1) !== '}') {
+      out.choices[0].message.content += '}';
+    }
+
+    res.json({
+      success: true,
+      data: {
+        product: productData,
+        reviews: reviews,
+        output: JSON.parse(out.choices[0].message.content)
+      },
     });
   } catch (error) {
     console.error('Error fetching or parsing data:', error);
