@@ -1,9 +1,12 @@
-const express = require('express');
-const axios = require('axios');
-const { JSDOM } = require('jsdom');
-const dotenv = require('dotenv');
-
+import express from 'express';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
+import dotenv from 'dotenv';
+import cors from 'cors';
 dotenv.config();
+
+import { HfInference } from '@huggingface/inference'
+
 
 const app = express();
 
@@ -17,7 +20,6 @@ function unicodeToChar(text) {
 
 app.post('/api/v1/scraper', async (req, res) => {
   const { url } = req.body;
-  console.log(req.body)
   if (!url) {
     return res.status(400).json({ error: 'URL is required in the request body.' });
   }
@@ -29,21 +31,93 @@ app.post('/api/v1/scraper', async (req, res) => {
     const response = await axios.get(scraperAPIURL);
     const html = response.data;
 
-    // Parse the HTML using JSDOM
-    const dom = new JSDOM(html);
-    const document = dom.window.document;
+    console.log(html);
 
+    // Parse the HTML using JSDOM
+
+    const $ = cheerio.load(html);
 
     const productData = {};
-    const titleElement = document.querySelectorAll('h1')[0];
-    productData.title = titleElement ? titleElement.textContent.trim() : 'N/A';
-    const priceElement = document.querySelector('#priceblock_ourprice') || document.querySelector('#priceblock_dealprice');
-    productData.price = priceElement ? priceElement.textContent.trim() : 'N/A';
-    const descriptionElement = document.querySelector('#productDescription p');
-    productData.description = descriptionElement ? descriptionElement.textContent.trim() : 'N/A';
-    const imageElement = document.querySelector('#landingImage');
-    productData.image = imageElement ? imageElement.src : 'N/A';
-    res.json({ success: true, data: productData });
+    productData.title = $('h1').first().text().trim() || 'N/A';
+    // If it's Amazon Prime, choose the next h1 element
+    if (productData.title.includes('Amazon Prime')) {
+      productData.title = $('h1').eq(1).text().trim() || 'N/A';
+    }
+    productData.price = $('#priceblock_ourprice, #priceblock_dealprice').text().trim() || 'N/A';
+    productData.description = $('#productDescription p').text().trim() || 'N/A';
+    productData.image = $('#landingImage').attr('src') || 'N/A';
+
+    // If no title is found, return just the product data
+    if (!productData.title || productData.title === 'N/A') {
+      return res.json({ success: true, data: { product: productData } });
+    }
+
+    // Use Google Custom Search API to find reviews for the product's title
+    const googleSearchAPIKey = process.env.GOOGLE_API_KEY;
+    const googleSearchEngineID = process.env.GOOGLE_SEARCH_ENGINE_ID;
+
+
+    const searchQuery = `${productData.title} reviews reddit`;
+    const googleSearchURL = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(
+      searchQuery
+    )}&key=${googleSearchAPIKey}&cx=${googleSearchEngineID}`;
+
+    const googleResponse = await axios.get(googleSearchURL);
+    const searchResults = googleResponse.data.items;
+
+    // Extract relevant data from Google Search API results (only returning top 5 results for simplicity)
+    /**
+     * !Edit search number from 5 to 20
+     */
+    const reviews = searchResults
+      ? searchResults.slice(0, 40).map((result) => ({
+        title: result.title,
+        snippet: result.snippet,
+        link: result.link,
+      }))
+      : [];
+
+    const out = await inference.chatCompletion({
+      model: "meta-llama/Meta-Llama-3-8B-Instruct",
+      messages: [
+        {
+          role: "system",
+          content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. BE SPECIFIC. You must only respond with the valid JSON in this exact format:
+                {
+                  "pros": ["pro1", "pro2", "pro3"],
+                  "cons": ["con1", "con2", "con3"],
+                  "summary": "Your summary here",
+                  "detailed_review": "Your detailed review here",
+                  "rating": X
+                }
+            `
+        },
+        {
+          role: "system",
+          content: "Make sure you close the JSON object with a closing curly brace '}' and open it with an opening curly brace '{'. In fact, that should be the first character of your response."
+        },
+        {
+          role: "user",
+          content: `These are the snippets of reviews about ${productData.title}. Reviews : ${reviews} `
+        },
+      ],
+      max_tokens: 512,
+      temperature: 0.5,
+    });
+
+    // Check if the last character is a closing curly brace, and if not, add it
+    if (out.choices[0].message.content.slice(-1) !== '}') {
+      out.choices[0].message.content += '}';
+    }
+
+    res.json({
+      success: true,
+      data: {
+        product: productData,
+        reviews: reviews,
+        output: JSON.parse(out.choices[0].message.content)
+      },
+    });
   } catch (error) {
     console.error('Error fetching or parsing the page:', error.message);
     res.status(500).json({ success: false, error: 'An error occurred while scraping the page.' });

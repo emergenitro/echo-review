@@ -3,7 +3,7 @@
     "name": "E-Shopping Product Checker",
     "version": "1.0",
     "description": "Checks if the active tab is a product page and fetches data from an external API.",
-    "permissions": ["tabs", "activeTab", "scripting"],
+    "permissions": ["tabs", "activeTab", "scripting", "storage"],
     "host_permissions": ["<all_urls>"],
     "background": {
       "service_worker": "background.js"
@@ -15,5 +15,17 @@
         "48": "icon.png",
         "128": "icon.png"
       }
-    }
-  }
+    },
+    "content_scripts": [
+        {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"]
+        }
+    ],
+    "web_accessible_resources": [
+        {
+            "resources": ["dist/tailwind.css", "icon.png"],
+            "matches": ["<all_urls>"]
+        }
+    ]
+}
