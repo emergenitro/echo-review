@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 dotenv.config();
 
-import { HfInference } from '@huggingface/inference';
+import { HfInference } from '@huggingface/inference'
 
 const inference = new HfInference(process.env.HF_TOKEN);
 const app = express();
@@ -28,6 +28,8 @@ app.post('/api/v1/scraper', async (req, res) => {
 
     const response = await axios.get(scraperAPIURL);
     const html = response.data;
+
+    console.log(html);
 
     // Parse the HTML using JSDOM
     const $ = cheerio.load(html);
@@ -75,7 +77,7 @@ app.post('/api/v1/scraper', async (req, res) => {
       : [];
 
     const out = await inference.chatCompletion({
-      model: "microsoft/Phi-3-mini-4k-instruct",
+      model: "meta-llama/Meta-Llama-3-8B-Instruct",
       messages: [
         {
           role: "system",
