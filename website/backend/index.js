@@ -71,7 +71,7 @@ app.post('/api/v1/scraper', async (req, res) => {
      * !Edit search number from 5 to 20
      */
     const reviews = searchResults
-      ? searchResults.slice(0, 5).map((result) => ({
+      ? searchResults.slice(0, 40).map((result) => ({
         title: result.title,
         snippet: result.snippet,
         link: result.link,
@@ -83,13 +83,13 @@ app.post('/api/v1/scraper', async (req, res) => {
         messages: [
           {
             role: "system",
-            content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product. You must only respond with the valid JSON in this exact format:
+            content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. You must only respond with the valid JSON in this exact format:
                 {
                   "pros": ["pro1", "pro2", "pro3"],
                   "cons": ["con1", "con2", "con3"],
                   "summary": "Your summary here",
                   "detailed_review": "Your detailed review here",
-                  "rating": 4.5
+                  "rating": X
                 }
             `
           },
