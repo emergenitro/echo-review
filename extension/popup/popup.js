@@ -1,56 +1,37 @@
 document.addEventListener("DOMContentLoaded", async () => {
-    const loadingDiv = document.getElementById("loading");
-    const contentDiv = document.getElementById("content");
-    const productData = document.getElementById("product-data");
+    const loading = document.getElementById("loading");
+    const content = document.getElementById("content");
+    const productName = document.getElementById("product-name");
+    const productPrice = document.getElementById("product-price");
+    const productDescription = document.getElementById("product-description");
   
     // Show loading spinner
-    loadingDiv.classList.remove("hidden");
+    loading.classList.remove("hidden");
   
-    // Get the product URL from storage
-    chrome.storage.local.get("productUrl", async ({ productUrl }) => {
-      if (productUrl) {
-        try {
-          // Log the API request details to the console
-          console.log("Sending API request for URL:", productUrl);
+    // Get the active tab's URL
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const url = tab.url;
   
-          // Send the URL to the external API
-          const response = await fetch("https://api.example.com/product-info", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({ url: productUrl })
-          });
+    // Check if the URL is a product page (simple example)
+    if (url.includes("product")) {
+      // Simulate API call
+      setTimeout(() => {
+        const productInfo = {
+          name: "Sample Product",
+          price: "$99.99",
+          description: "This is a sample product description."
+        };
   
-          // Log the response status
-          console.log("API response status:", response.status);
+        // Hide loading spinner and show content
+        loading.classList.add("hidden");
+        content.classList.remove("hidden");
   
-          if (!response.ok) {
-            throw new Error("Failed to fetch product data");
-          }
-  
-          const data = await response.json();
-  
-          // Log the API response data
-          console.log("API response data:", data);
-  
-          // Hide loading spinner and show content
-          loadingDiv.classList.add("hidden");
-          contentDiv.classList.remove("hidden");
-  
-          // Display the product data
-          productData.textContent = JSON.stringify(data, null, 2);
-        } catch (error) {
-          // Log the error to the console
-          console.error("Error during API request:", error);
-  
-          // Hide loading spinner and show error message
-          loadingDiv.classList.add("hidden");
-          contentDiv.classList.remove("hidden");
-          productData.textContent = `Error: ${error.message}`;
-        }
-      } else {
-        console.log("No product URL found in storage.");
-      }
-    });
+        // Update the UI with product info
+        productName.textContent = productInfo.name;
+        productPrice.textContent = productInfo.price;
+        productDescription.textContent = productInfo.description;
+      }, 2000);
+    } else {
+      loading.textContent = "Not a product page.";
+    }
   });

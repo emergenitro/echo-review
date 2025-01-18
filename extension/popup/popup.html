@@ -3,20 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Product Info</title>
-  <script src="popup.js" defer></script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Product Page Checker</title>
+  <link rel="stylesheet" href="../tailwind.css">
 </head>
 <body class="bg-gray-100 p-4">
-  <div id="loading" class="hidden">
-    <p class="text-center text-gray-500">Loading...</p>
-    <div class="flex justify-center mt-4">
-      <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-500"></div>
+  <div id="app" class="text-center">
+    <!-- Loading Spinner -->
+    <div id="loading" class="hidden">
+      <p class="text-green-600 font-bold">Loading...</p>
+      <div class="animate-spin rounded-full h-8 w-8 border-t-4 border-green-600 border-b-4 border-transparent mx-auto"></div>
+    </div>
+
+    <!-- Product Info -->
+    <div id="content" class="hidden">
+      <h3 class="text-lg font-bold text-gray-800" id="product-name"></h3>
+      <p class="text-green-600 font-bold text-xl" id="product-price"></p>
+      <p class="text-gray-600 text-sm" id="product-description"></p>
     </div>
   </div>
-  <div id="content" class="hidden">
-    <h1 class="text-lg font-bold mb-2">Product Info</h1>
-    <p id="product-data" class="text-gray-700"></p>
-  </div>
+  <script src="popup.js"></script>
 </body>
 </html>
