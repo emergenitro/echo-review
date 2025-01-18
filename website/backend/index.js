@@ -7,26 +7,24 @@ dotenv.config();
 
 import { HfInference } from '@huggingface/inference'
 
-
+const inference = new HfInference(process.env.HF_TOKEN);
 const app = express();
 
+app.use(cors());
 app.use(express.json());
-
-function unicodeToChar(text) {
-  return text.replace(/\\u[\dA-F]{4}/gi, (match) =>
-    String.fromCharCode(parseInt(match.replace(/\\u/g, ''), 16))
-  );
-}
 
 app.post('/api/v1/scraper', async (req, res) => {
   const { url } = req.body;
+
   if (!url) {
-    return res.status(400).json({ error: 'URL is required in the request body.' });
+    return res
+      .status(400)
+      .json({ error: 'URL is required in the request body.' });
   }
 
   try {
-    const encodedURL = encodeURIComponent(url);
-    const scraperAPIURL = `http://api.scraperapi.com/?api_key=${process.env.API_KEY}&url=${encodedURL}&render=true`
+    // Scrape product details from the provided URL
+    const scraperAPIURL = `http://api.scraperapi.com/?api_key=${process.env.API_KEY}&url=${url}`;
 
     const response = await axios.get(scraperAPIURL);
     const html = response.data;
@@ -34,7 +32,6 @@ app.post('/api/v1/scraper', async (req, res) => {
     console.log(html);
 
     // Parse the HTML using JSDOM
-
     const $ = cheerio.load(html);
 
     const productData = {};
@@ -56,6 +53,12 @@ app.post('/api/v1/scraper', async (req, res) => {
     const googleSearchAPIKey = process.env.GOOGLE_API_KEY;
     const googleSearchEngineID = process.env.GOOGLE_SEARCH_ENGINE_ID;
 
+    if (!googleSearchAPIKey || !googleSearchEngineID) {
+      return res.status(500).json({
+        success: false,
+        error: 'Google API key or Search Engine ID is not configured.',
+      });
+    }
 
     const searchQuery = `${productData.title} reviews reddit`;
     const googleSearchURL = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(
@@ -119,11 +122,15 @@ app.post('/api/v1/scraper', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching or parsing the page:', error.message);
-    res.status(500).json({ success: false, error: 'An error occurred while scraping the page.' });
+    console.error('Error fetching or parsing data:', error);
+    res
+      .status(500)
+      .json({
+        success: false,
+        error: 'An error occurred while fetching product or review data.',
+      });
   }
 });
-
 
 app.all('*', (req, res) => {
   res.status(404).json({ error: 'Route not found.' });
