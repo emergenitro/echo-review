@@ -42,8 +42,17 @@ const fetchProductReview = async () => {
     error.value = null
     productReview.value = null
     try {
-        const response = await axios.post('https://localhost:5314/api/v1/productReview', { url: url.value })
+        const apiClient = axios.create({
+            baseURL: 'http://localhost:3000/api',
+            withCredentials: false,
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            }
+        })
+        const response = await apiClient.post('http://localhost:3000/api/v1/scraper', { url: url.value })
         productReview.value = response.data
+        console.log(productReview.value)
     } catch (e) {
         error.value = 'Failed to fetch product review. Please try again.'
     } finally {

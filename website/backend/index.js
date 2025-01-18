@@ -2,15 +2,17 @@ import express from 'express';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import dotenv from 'dotenv';
-import cors from 'cors';
 dotenv.config();
-
+import cors from 'cors';
 import { HfInference } from '@huggingface/inference'
+
+const inference = new HfInference(process.env.HF_TOKEN);
 
 
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 
 function unicodeToChar(text) {
   return text.replace(/\\u[\dA-F]{4}/gi, (match) =>
@@ -26,7 +28,7 @@ app.post('/api/v1/scraper', async (req, res) => {
 
   try {
     const encodedURL = encodeURIComponent(url);
-    const scraperAPIURL = `http://api.scraperapi.com/?api_key=${process.env.API_KEY}&url=${encodedURL}&render=true`
+    const scraperAPIURL = `http://api.scraperapi.com/?api_key=${process.env.API_KEY}&url=${url}&render=true`
 
     const response = await axios.get(scraperAPIURL);
     const html = response.data;
@@ -66,9 +68,6 @@ app.post('/api/v1/scraper', async (req, res) => {
     const searchResults = googleResponse.data.items;
 
     // Extract relevant data from Google Search API results (only returning top 5 results for simplicity)
-    /**
-     * !Edit search number from 5 to 20
-     */
     const reviews = searchResults
       ? searchResults.slice(0, 40).map((result) => ({
         title: result.title,
