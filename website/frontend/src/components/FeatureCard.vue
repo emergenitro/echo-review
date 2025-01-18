@@ -13,7 +13,3 @@ defineProps({
     icon: String,
 })
 </script>
-
-<style scoped>
-/* Add any component-specific styles */
-</style>

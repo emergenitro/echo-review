@@ -9,7 +9,6 @@
                     icon="⭐" />
                 <FeatureCard title="Detailed Reviews"
                     description="Read comprehensive reviews to make informed decisions." icon="📝" />
-                <!-- Add more FeatureCards as needed -->
             </div>
         </div>
     </section>

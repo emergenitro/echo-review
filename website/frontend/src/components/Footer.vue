@@ -5,11 +5,3 @@
         </div>
     </footer>
 </template>
-
-<script setup>
-// No script needed
-</script>
-
-<style scoped>
-/* Add any footer-specific styles */
-</style>

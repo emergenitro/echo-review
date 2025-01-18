@@ -14,8 +14,6 @@ const userCount = ref(0)
 const formattedUserCount = computed(() => userCount.value.toLocaleString())
 
 const fetchUserCount = async () => {
-    // Placeholder for API call to get user count
-    // In a real application, replace this with an actual API call
     userCount.value = 123456
 }
 

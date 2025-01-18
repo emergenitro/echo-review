@@ -51,7 +51,3 @@ const fetchProductReview = async () => {
     }
 }
 </script>
-
-<style scoped>
-/* Add any styles specific to the hero section */
-</style>

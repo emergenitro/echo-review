@@ -34,7 +34,6 @@ const testimonials = [
         quote: "Highly recommend this extension to everyone.",
         author: "Sam T.",
     },
-    // Add more testimonials as needed
 ]
 
 const carousel = ref(null)
