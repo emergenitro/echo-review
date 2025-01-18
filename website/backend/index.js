@@ -79,11 +79,11 @@ app.post('/api/v1/scraper', async (req, res) => {
       : [];
 
     const out = await inference.chatCompletion({
-        model: "meta-llama/Meta-Llama-3-8B-Instruct",
+        model: "microsoft/Phi-3-mini-4k-instruct",
         messages: [
           {
             role: "system",
-            content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. You must only respond with the valid JSON in this exact format:
+            content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. BE SPECIFIC. You must only respond with the valid JSON in this exact format:
                 {
                   "pros": ["pro1", "pro2", "pro3"],
                   "cons": ["con1", "con2", "con3"],
