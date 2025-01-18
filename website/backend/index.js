@@ -15,7 +15,7 @@ app.use(express.json());
 
 app.post('/api/v1/scraper', async (req, res) => {
   const { url } = req.body;
-  console.log(req.body);
+
   if (!url) {
     return res
       .status(400)
@@ -100,13 +100,12 @@ app.post('/api/v1/scraper', async (req, res) => {
       temperature: 0.5,
     });
 
-    console.log(out.choices[0].message);
     res.json({
       success: true,
       data: {
         product: productData,
         reviews: reviews,
-        output: out.choices[0].message
+        output: JSON.parse(out.choices[0].message)
       },
     });
   } catch (error) {
