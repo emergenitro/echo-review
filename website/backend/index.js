@@ -105,7 +105,7 @@ app.post('/api/v1/scraper', async (req, res) => {
       data: {
         product: productData,
         reviews: reviews,
-        output: JSON.parse(out.choices[0].message)
+        output: JSON.parse(out.choices[0].message.content)
       },
     });
   } catch (error) {
