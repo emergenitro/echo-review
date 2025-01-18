@@ -2,8 +2,9 @@ import express from 'express';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import dotenv from 'dotenv';
-dotenv.config();
 import cors from 'cors';
+dotenv.config();
+
 import { HfInference } from '@huggingface/inference'
 
 const inference = new HfInference(process.env.HF_TOKEN);
@@ -11,7 +12,6 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(cors());
 
 app.post('/api/v1/scraper', async (req, res) => {
   const { url } = req.body;
@@ -65,10 +65,14 @@ app.post('/api/v1/scraper', async (req, res) => {
       searchQuery
     )}&key=${googleSearchAPIKey}&cx=${googleSearchEngineID}`;
 
-    const googleResponse = await axios.get(googleSearchURL);
-    const searchResults = googleResponse.data.items;
+    const [googleResponse, alternativesResponse] = await Promise.all([
+      axios.get(googleSearchURL),
+      axios.get(googleAlternativesURL),
+    ]);
 
-    // Extract relevant data from Google Search API results (only returning top 5 results for simplicity)
+    const searchResults = googleResponse.data.items;
+    const alternativeResults = alternativesResponse.data.items || [];
+
     const reviews = searchResults
       ? searchResults.slice(0, 40).map((result) => ({
         title: result.title,
@@ -76,6 +80,13 @@ app.post('/api/v1/scraper', async (req, res) => {
         link: result.link,
       }))
       : [];
+
+    // Extract alternative products
+    const alternatives = alternativeResults.slice(0, 5).map((result) => ({
+      title: result.title,
+      link: result.link,
+    }));
+
 
     const out = await inference.chatCompletion({
       model: "meta-llama/Meta-Llama-3-8B-Instruct",
@@ -98,7 +109,9 @@ app.post('/api/v1/scraper', async (req, res) => {
         },
         {
           role: "user",
-          content: `These are the snippets of reviews about ${productData.title}. Reviews : ${reviews} `
+          content: `These are the snippets of reviews about ${productData.title}. Reviews: ${reviews
+            .map((review) => review.snippet)
+            .join(' ')}`
         },
       ],
       max_tokens: 512,
@@ -110,12 +123,15 @@ app.post('/api/v1/scraper', async (req, res) => {
       out.choices[0].message.content += '}';
     }
 
+    const googleAlternativesURL = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(
+      alternativesQuery
+    )}&key=${googleSearchAPIKey}&cx=${googleSearchEngineID}`;
+
     res.json({
       success: true,
       data: {
-        product: productData,
-        reviews: reviews,
-        output: JSON.parse(out.choices[0].message.content)
+        alternatives: alternatives,
+        output: JSON.parse(chatResponse),
       },
     });
   } catch (error) {
