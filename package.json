@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@huggingface/agents": "^0.0.5",
+    "@huggingface/hub": "^1.0.0",
+    "@huggingface/inference": "^3.0.0",
+    "cheerio": "^1.0.0"
+  }
+}
