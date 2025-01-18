@@ -4,8 +4,8 @@
         <p class="text-xl mb-8">Get instant reviews and alternatives for your favorite products.</p>
         <div class="flex w-full max-w-md">
             <input v-model="url" type="text" placeholder="Enter product URL"
-                class="flex-grow p-4 rounded-l-md text-black" />
-            <button @click="fetchProductReview" class="bg-blue-500 text-white px-6 py-4 rounded-r-md">
+                class="flex-grow p-4 rounded-l-md text-black border-y-2 border-l-2" />
+            <button @click="fetchProductReview" class="bg-blue-500 text-white px-6 py-4 rounded-none rounded-r-md">
                 Get Review
             </button>
         </div>

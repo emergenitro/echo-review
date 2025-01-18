@@ -19,5 +19,8 @@ import Footer from './components/Footer.vue'
 </script>
 
 <style scoped>
-/* Add any global styles if necessary */
+@font-face {
+  font-family: 'Phantom Sans';
+  src: url('./../public/font/PhantomSans_Bold.woff') format('woff');
+}
 </style>
