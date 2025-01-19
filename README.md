@@ -1,2 +1,2 @@
-# echo-review
-Reviewing products in websites
+# EchoReview - The voice of everyone
+Ever wanted to buy a product, but didn't know how it performed? So you went on the internet scouring for reviews and feedback about products spending so much time in the process. EchoReview is a platform that scrapes and consolidates reviews for any product of your choice from various websites and presents them in a website and Chrome extension with convenience and simplicity.
