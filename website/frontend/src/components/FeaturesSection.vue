@@ -1,6 +1,6 @@
 <template>
     <section id="features" class="py-20">
-        <div class="container mx-auto bg-gray-100 p-10">
+        <div class="container mx-auto bg-gray-100 p-10 w-100 max-w-none">
             <h2
                 class="text-4xl font-bold text-center mb-12 bg-gradient-to-r from-green-400 via-green-500 to-green-600 inline-block text-transparent bg-clip-text">
                 Features</h2>

@@ -1,5 +1,5 @@
 <template>
-    <section class="flex flex-col items-center justify-center text-center py-48">
+    <section class="flex flex-col items-center justify-center text-center py-48 h-[calc(100vh-31.983px-3rem)]">
         <h1
             class="text-8xl font-extrabold mb-8 bg-gradient-to-r from-green-500 to-green-600 inline-block text-transparent bg-clip-text">
             Welcome to EchoReview</h1>
@@ -9,7 +9,7 @@
             <input v-model="url" type="text" placeholder="Enter product URL"
                 class="flex-grow p-4 bg-white rounded-l-md text-green-500 border-y-2 border-l-2 border-green-500 focus:outline-none focus:border-green-600" />
             <button @click="fetchProductReview"
-                class="text-white font-bold border-solid bg-green-500 hover:bg-green-600 transition duration-200 cursor-pointer px-6 py-4 rounded-none rounded-r-md">
+                class="text-white font-bold border-solid bg-green-500 hover:bg-green-600 focus:outline-none transition duration-200 cursor-pointer px-6 py-4 rounded-none rounded-r-md">
                 Get Review
             </button>
         </div>
