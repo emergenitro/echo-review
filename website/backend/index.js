@@ -86,7 +86,7 @@ app.post('/api/v1/scraper', async (req, res) => {
       : [];
 
     // Extract alternative products
-    const alternatives = alternativeResults.slice(0, 5).map((result) => ({
+    const alternatives = alternativeResults.slice(0, 2).map((result) => ({
       title: result.title,
       link: result.link,
     }));

@@ -1,5 +1,5 @@
 <template>
-    <section class="flex flex-col items-center justify-center text-center py-48 h-[calc(100vh-31.983px-3rem)]">
+    <section class="flex flex-col items-center justify-center text-center py-48">
         <h1
             class="text-8xl font-extrabold mb-8 bg-gradient-to-r from-green-500 to-green-600 inline-block text-transparent bg-clip-text">
             Welcome to EchoReview</h1>
@@ -16,23 +16,33 @@
         <div v-if="loading" class="mt-4">Loading...</div>
         <div v-if="error" class="mt-4 text-red-500">{{ error }}</div>
         <div v-if="rawReviewStuff" class="mt-8 w-full max-w-2xl text-left">
-            <h2 class="text-3xl font-bold mb-4">Review Summary</h2>
+            <h2 class="text-3xl font-extrabold mb-8 bg-gradient-to-r from-green-500 to-green-600 inline-block text-transparent bg-clip-text">Review Summary</h2>
             <p>{{ rawReviewStuff.summary }}</p>
-            <p><strong>Average Rating:</strong> {{ rawReviewStuff.rating }}</p>
-            <p><strong>Pros:</strong></p>
-            <ul class="list-disc list-inside">
-                <li v-for="pro in rawReviewStuff.pros">{{ pro }}</li>
-            </ul>
-            <p><strong>Cons:</strong></p>
-            <ul class="list-disc list-inside">
-                <li v-for="con in rawReviewStuff.cons">{{ con }}</li>
-            </ul>
-            <p><strong>Alternatives:</strong></p>
-            <ul class="list-disc list-inside">
-                <li v-for="alternative in rawAlternatives">
-                    <a href="{{ alternative.link }}" class="text-green   underline">{{ alternative.title }}</a>
-                </li>
-            </ul>
+            <div class="container m-auto grid grid-cols-2 gap-3 text-center">
+                <p class=""><strong class="text-xl my-4 bg-gradient-to-r from-green-500 to-green-600 inline-block text-transparent bg-clip-text">Rating</strong><br /> <span class="text-5xl flex justify-center items-center font-extrabold bg-gradient-to-r from-gray-800 to-gray-600 inline-block text-transparent bg-clip-text">{{ rawReviewStuff.rating }}</span></p>
+                <div class="">
+                    <p><strong class="text-xl my-4 bg-gradient-to-r from-green-500 to-green-600 inline-block text-transparent bg-clip-text">Pros</strong></p>
+                    <ul class="list-disc list-inside">
+                        <li v-for="pro in rawReviewStuff.pros" class="hover:text-green-600">{{ pro }}</li>
+                    </ul>
+                </div>
+                <div class="">
+                    <p><strong class="text-xl my-4 bg-gradient-to-r from-green-500 to-green-600 inline-block text-transparent bg-clip-text">Cons</strong></p>
+                    <ul class="list-disc list-inside">
+                        <li class="hover:text-green-600" v-for="con in rawReviewStuff.cons">{{ con }}</li>
+                    </ul>
+                </div>
+                <div class="">
+                    <p><strong  class="text-xl my-4 bg-gradient-to-r from-green-500 to-green-600 inline-block text-transparent bg-clip-text">Alternatives</strong></p>
+                    <ul class="list-disc list-inside">
+                        <li class="hover:text-green-600" v-for="alternative in rawAlternatives">
+                            <a href="{{ alternative.link }}" class="text-green hover:text-green-600">{{ alternative.title }}</a>
+                        </li>
+                    </ul>
+                </div>
+                
+            </div>
+            
         </div>
     </section>
 </template>
