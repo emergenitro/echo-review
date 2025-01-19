@@ -61,7 +61,6 @@ const fetchProductReview = async () => {
         let var1 = response.data.data.output;
         rawReviewStuff.value = toRaw(var1);
         rawAlternatives.value = response.data.data.alternatives;
-        console.log(rawAlternatives);
     } catch (e) {
         error.value = 'Failed to fetch product review. Please try again.'
     } finally {
