@@ -24,7 +24,7 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": ["dist/tailwind.css", "icon.png", "doubleRightArrow.png"],
+            "resources": ["dist/tailwind.css", "icon.png", "doubleRightArrow.png", "fullstar.png", "halfstar.png", "nostar.png"],
             "matches": ["<all_urls>"]
         }
     ]

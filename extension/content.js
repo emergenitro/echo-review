@@ -47,7 +47,7 @@ function injectUI() {
     // Create the blip (small button with logo)
     const blip = document.createElement("div");
     blip.id = "extension-blip";
-    blip.className = "fixed top-1/2 right-4 bg-blue-500 text-white rounded-2xl shadow-lg cursor-pointer flex items-center justify-center w-12 h-12 z-50";
+    blip.className = "fixed top-1/2 right-0 bg-green-500 hover:bg-green-700 text-white rounded-l-3xl shadow-lg cursor-pointer flex items-center justify-center w-12 h-20 z-50";
     blip.innerHTML = `<img src="${chrome.runtime.getURL("icon.png")}" alt="Logo" class="w-8 h-8">`; // Replace "logo.png" with your actual logo file name
     //blip.style = "position: fixed; top: 50%; right: 10px; background: blue; color: white; width: 50px; height: 50px; border-radius: 50%; z-index: 9999; display: flex; align-items: center; justify-content: center; cursor: pointer;";
     document.body.appendChild(blip);
@@ -55,14 +55,21 @@ function injectUI() {
     // Create the sidebar
     const sidebar = document.createElement("div");
     sidebar.id = "extension-sidebar";
-    sidebar.className = "fixed top-0 right-0 w-80 h-full bg-white shadow-lg transform translate-x-full transition-transform duration-300";
-    sidebar.style.zIndex = "9999";
+    sidebar.className = "fixed top-0 right-0 w-80 h-full bg-white shadow-lg transform translate-x-full transition-transform duration-300 border-green-400 border-solid border-4 rounded-lg rounded-r-none border-r-0";
+    sidebar.style.zIndex = "2147483647";
     sidebar.innerHTML = `
     <div class="flex justify-between w-full text-xl p-4">
         <img id="minimize-btn" src="${chrome.runtime.getURL("doubleRightArrow.png")}" alt="Minimize Button" class="text-gray-500 hover:text-gray-700 focus:outline-none w-8 h-8 cursor-pointer">
         <h2 class="flex items-center text-center text-xl font-bold justify-center mx-auto">Echo Review</h2>
     </div>
-    <div class="p-4 h-full w-full overflow-y-auto">
+    <div class="p-4 h-full w-full overflow-y-auto overflow-y-auto
+  [&::-webkit-scrollbar]:w-2
+  [&::-webkit-scrollbar-track]:rounded-full
+  [&::-webkit-scrollbar-track]:bg-transparent
+  [&::-webkit-scrollbar-thumb]:rounded-none
+  [&::-webkit-scrollbar-thumb]:bg-neutral-500
+  dark:[&::-webkit-scrollbar-track]:bg-transparent
+  dark:[&::-webkit-scrollbar-thumb]:bg-neutral-300">
         <div style="width: 100%; margin: 0;" id="loading-spinner" class="flex items-center justify-center h-[80%] w-full">
           <div style="padding: 3rem;" class="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
         </div>
@@ -84,9 +91,12 @@ function injectUI() {
                 <p id="review-content" class="text-gray-700">Detailed Review Unavailable</p>
             </div>
             <div id="rating-section" class="mb-4">
-                <h3 class="text-lg font-semibold">Rating</h3>
-                <div id="rating-content" class="text-gray-700">Rating Unavailable</div>
+                <h3 class="text-lg font-semibold">Overall Rating</h3>
+                <div id="rating-content" class="text-gray-700 flex text-xl">Rating Unavailable</div>
             </div>
+            <br>
+            <br>
+            <br>
         </div>
     </div>
     `;
@@ -107,7 +117,38 @@ function injectUI() {
     console.log("injectUI() is running on:", window.location.href);
 }
 
+function generateStarRating(rating) {
+    const maxStars = 5;
+    let starsHTML = '';
 
+    // Input validation
+    if (rating < 0 || rating > 5) {
+        console.error("Rating must be between 0 and 5.");
+        return starsHTML;
+    }
+
+    // Calculate full and partial stars
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = (rating % 1) >= 0.5;
+    const emptyStars = maxStars - fullStars - (hasHalfStar ? 1 : 0);
+
+    // Add full stars
+    for (let i = 0; i < fullStars; i++) {
+        starsHTML += `<img src="${chrome.runtime.getURL('fullstar.png')}" class='star-icon h-6 w-6'>`;
+    }
+
+    // Add half star if needed
+    if (hasHalfStar) {
+        starsHTML += `<img src="${chrome.runtime.getURL('halfstar.png')}" class='star-icon h-6 w-6'>`;
+    }
+
+    // Add empty stars
+    for (let i = 0; i < emptyStars; i++) {
+        starsHTML += `<img src="${chrome.runtime.getURL('nostar.png')}" class='star-icon h-6 w-6'>`;
+    }
+
+    return starsHTML;
+}
   
   // Function to make the API request
 function fetchProductData(url) {
@@ -148,7 +189,15 @@ function fetchProductData(url) {
                 li.textContent = pro; // Set the text content to the pro statement
                 ul.appendChild(li); // Add the list item to the unordered list
             });
-        
+            // const pros = data.data.output.pros;
+            // let prosString = pros.map(pro => `<li>${pro}</li>`).join(''); // Create HTML for pros
+            // console.log(prosString);
+            // prosContent.appendChild(ulp);
+            // const typewriterPros = new Typewriter(ulp, {
+            //     loop: false
+            // });
+
+            // typewriterPros.typeString(prosString).start();
             // Append the unordered list to the pros-content div
             prosContent.appendChild(ul); // Add the list to the pros content div
         }
@@ -183,9 +232,9 @@ function fetchProductData(url) {
     
         if (data.data.output.rating) {
             const ratingContent = document.getElementById("rating-content");
-            const rating = parseFloat(data.rating); // Ensure the rating is a number
+            const rating = parseFloat(data.data.output.rating); // Ensure the rating is a number
             ratingContent.innerHTML = generateStarRating(rating); // Generate stars 
-       }
+        }
     })
     .catch((error) => {
         console.error("Error fetching product data:", error);
@@ -202,17 +251,6 @@ function main() {
         // Make the API request
         fetchProductData(window.location.href);
     }
-}
-
-/**
- * Generate star rating HTML based on the rating value.
- * @param {number} rating - The rating value (e.g., 4.5).
- * @returns {string} - HTML string with star icons.
- */
-function generateStarRating(rating) {
-    const fullStar = `<span class="text-yellow-500">&#9733;</span>`; // Unicode for ★
-    const halfStar = `<span class="text-yellow-500">&#9734;</span>`; // Unicode for ☆ (half-star placeholder)
-    const emptyStar = `<span class="text-gray-300">&#9733;</span>`; // Unicode for ★ (gray
 }
 // Run the main logic immediately
 main();
