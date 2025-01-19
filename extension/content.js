@@ -37,6 +37,29 @@ function isProductPage() {
   // Function to inject the UI
 function injectUI() {
     console.log("Injecting UI..."); // Debugging log
+
+    const resetStyles = document.createElement('style');
+    resetStyles.textContent = `
+        html {
+            font-size: 16px !important;
+        }
+        #extension-sidebar {
+            font-size: 16px !important; /* Force base font size */
+        }
+        
+        #extension-blip {
+            font-size: 16px !important; /* Force base font
+        }
+
+        #extension-blip * {
+            font-size: 16px !important; /* Force base font
+        }
+        
+        #extension-sidebar * {
+            font-size: inherit; /* Inherit from parent for consistent rem scaling */
+        }
+    `;
+    document.head.appendChild(resetStyles);
   
     // Inject Tailwind CSS from the local file
     const tailwindLink = document.createElement("link");
