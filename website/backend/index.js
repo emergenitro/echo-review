@@ -61,7 +61,7 @@ app.post('/api/v1/scraper', async (req, res) => {
     }
 
     const searchQuery = `${productData.title} reviews`;
-    const alternativesQuery = `${productData.title} alternatives`;
+    const alternativesQuery = `${productData.title} shopping alternatives`;
     const googleSearchURL = `https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(
       searchQuery
     )}&key=${googleSearchAPIKey}&cx=${googleSearchEngineID}`;
