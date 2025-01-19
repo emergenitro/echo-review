@@ -92,7 +92,7 @@ function injectUI() {
             </div>
             <div id="rating-section" class="mb-4">
                 <h3 class="text-lg font-semibold">Overall Rating</h3>
-                <div id="rating-content" class="text-gray-700 inline-block text-xl">Rating Unavailable</div>
+                <div id="rating-content" class="text-gray-700 flex text-xl">Rating Unavailable</div>
             </div>
             <br>
             <br>
@@ -134,17 +134,17 @@ function generateStarRating(rating) {
 
     // Add full stars
     for (let i = 0; i < fullStars; i++) {
-        starsHTML += `<img src="${chrome.runtime.getURL('fullstar.png')}" class='star-icon'>`;
+        starsHTML += `<img src="${chrome.runtime.getURL('fullstar.png')}" class='star-icon h-6 w-6'>`;
     }
 
     // Add half star if needed
     if (hasHalfStar) {
-        starsHTML += `<img src="${chrome.runtime.getURL('halfstar.png')}" class='star-icon'>`;
+        starsHTML += `<img src="${chrome.runtime.getURL('halfstar.png')}" class='star-icon h-6 w-6'>`;
     }
 
     // Add empty stars
     for (let i = 0; i < emptyStars; i++) {
-        starsHTML += `<img src="${chrome.runtime.getURL('nostar.png')}" class='star-icon'>`;
+        starsHTML += `<img src="${chrome.runtime.getURL('nostar.png')}" class='star-icon h-6 w-6'>`;
     }
 
     return starsHTML;
