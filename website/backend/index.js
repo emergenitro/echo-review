@@ -82,7 +82,7 @@ app.post('/api/v1/scraper', async (req, res) => {
     const alternativeResults = alternativesResponse.data.items || [];
 
     const reviews = searchResults
-      ? searchResults.slice(0, 40).map((result) => ({
+      ? searchResults.slice(0, 10).map((result) => ({
         title: result.title,
         snippet: result.snippet,
         link: result.link,
@@ -122,7 +122,7 @@ app.post('/api/v1/scraper', async (req, res) => {
       ],
       temperature: 0.8,
       top_p: 0.2,
-      max_tokens: 512,
+      max_tokens: 2048,
     })
 
 
