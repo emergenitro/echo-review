@@ -10,7 +10,7 @@ import OpenAI from 'openai';
 // const inference = new HfInference(process.env.HF_TOKEN);
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  baseURL: 'https://integrate.api.nvidia.com/v1',
+  baseURL: 'https://integrate.api.nvidia.com/v1/completions',
 });
 const app = express();
 
