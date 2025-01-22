@@ -82,7 +82,7 @@ app.post('/api/v1/scraper', async (req, res) => {
     const alternativeResults = alternativesResponse.data.items || [];
 
     const reviews = searchResults
-      ? searchResults.slice(0, 40).map((result) => ({
+      ? searchResults.slice(0, 20).map((result) => ({
         title: result.title,
         snippet: result.snippet,
         link: result.link,
