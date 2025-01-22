@@ -122,7 +122,7 @@ app.post('/api/v1/scraper', async (req, res) => {
       ],
       temperature: 0.8,
       top_p: 0.2,
-      max_tokens: 2048,
+      max_tokens: 2048
     })
 
 
