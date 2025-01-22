@@ -10,8 +10,8 @@ import OpenAI from 'openai';
 // const inference = new HfInference(process.env.HF_TOKEN);
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  baseURL: 'https://integrate.api.nvidia.com/v1/completions',
-});
+  baseURL: 'https://integrate.api.nvidia.com/v1',
+})
 const app = express();
 
 app.use(cors());
@@ -82,7 +82,7 @@ app.post('/api/v1/scraper', async (req, res) => {
     const alternativeResults = alternativesResponse.data.items || [];
 
     const reviews = searchResults
-      ? searchResults.slice(0, 20).map((result) => ({
+      ? searchResults.slice(0, 40).map((result) => ({
         title: result.title,
         snippet: result.snippet,
         link: result.link,
@@ -99,8 +99,8 @@ app.post('/api/v1/scraper', async (req, res) => {
       model: "mistralai/mistral-7b-instruct-v0.3",
       messages: [
         {
-          role: "system",
-          content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. BE SPECIFIC. You must only respond with the valid JSON in this exact format:
+          "role": "system",
+          "content": `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. BE SPECIFIC. You must only respond with the valid JSON in this exact format:
 {
   "pros": ["pro1", "pro2", "pro3"],
   "cons": ["con1", "con2", "con3"],
@@ -110,12 +110,12 @@ app.post('/api/v1/scraper', async (req, res) => {
 }`
         },
         {
-          role: "system",
-          content: "Make sure you close the JSON object with a closing curly brace '}' and open it with an opening curly brace '{'. In fact, that should be the first character of your response."
+          "role": "system",
+          "content": "Make sure you close the JSON object with a closing curly brace '}' and open it with an opening curly brace '{'. In fact, that should be the first character of your response."
         },
         {
-          role: "user",
-          content: `These are the snippets of reviews about ${productData.title}. Reviews: ${reviews
+          "role": "user",
+          "content": `These are the snippets of reviews about ${productData.title}. Reviews: ${reviews
             .map((review) => review.snippet)
             .join(' ')}`
         },
