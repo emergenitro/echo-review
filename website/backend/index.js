@@ -5,13 +5,9 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 dotenv.config();
 
-import OpenAI from 'openai';
+import { HfInference } from '@huggingface/inference'
 
-// const inference = new HfInference(process.env.HF_TOKEN);
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  baseURL: 'https://integrate.api.nvidia.com/v1',
-})
+const inference = new HfInference(process.env.HF_TOKEN);
 const app = express();
 
 app.use(cors());
@@ -82,7 +78,7 @@ app.post('/api/v1/scraper', async (req, res) => {
     const alternativeResults = alternativesResponse.data.items || [];
 
     const reviews = searchResults
-      ? searchResults.slice(0, 10).map((result) => ({
+      ? searchResults.slice(0, 40).map((result) => ({
         title: result.title,
         snippet: result.snippet,
         link: result.link,
@@ -95,43 +91,36 @@ app.post('/api/v1/scraper', async (req, res) => {
       link: result.link,
     }));
 
-    const out = await openai.chat.completions.create({
-      model: "mistralai/mistral-7b-instruct-v0.3",
+
+    const out = await inference.chatCompletion({
+      model: "meta-llama/Meta-Llama-3-8B-Instruct",
       messages: [
         {
-          "role": "system",
-          "content": `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. BE SPECIFIC. You must only respond with the valid JSON in this exact format:
-{
-  "pros": ["pro1", "pro2", "pro3"],
-  "cons": ["con1", "con2", "con3"],
-  "summary": "Your summary here",
-  "detailed_review": "Your detailed review here",
-  "rating": X
-}`
+          role: "system",
+          content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. BE SPECIFIC. You must only respond with the valid JSON in this exact format:
+                {
+                  "pros": ["pro1", "pro2", "pro3"],
+                  "cons": ["con1", "con2", "con3"],
+                  "summary": "Your summary here",
+                  "detailed_review": "Your detailed review here",
+                  "rating": X
+                }
+            `
         },
         {
-          "role": "system",
-          "content": "Make sure you close the JSON object with a closing curly brace '}' and open it with an opening curly brace '{'. In fact, that should be the first character of your response."
+          role: "system",
+          content: "Make sure you close the JSON object with a closing curly brace '}' and open it with an opening curly brace '{'. In fact, that should be the first character of your response."
         },
         {
-          "role": "user",
-          "content": `These are the snippets of reviews about ${productData.title}. Reviews: ${reviews
+          role: "user",
+          content: `These are the snippets of reviews about ${productData.title}. Reviews: ${reviews
             .map((review) => review.snippet)
             .join(' ')}`
         },
       ],
-      temperature: 0.8,
-      top_p: 0.2,
-      max_tokens: 2048
-    })
-
-
-    // const out = await inference.chatCompletion({
-    //   model: "meta-llama/Meta-Llama-3-8B-Instruct",
-    //   messages: 
-    //   max_tokens: 512,
-    //   temperature: 0.5,
-    // });
+      max_tokens: 512,
+      temperature: 0.5,
+    });
 
     // Check if the last character is a closing curly brace, and if not, add it
     if (out.choices[0].message.content.slice(-1) !== '}') {
@@ -139,8 +128,6 @@ app.post('/api/v1/scraper', async (req, res) => {
     }
 
     const chatResponse = out.choices[0].message.content;
-
-    console.log(chatResponse);
 
     res.json({
       success: true,
