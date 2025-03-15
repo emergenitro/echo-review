@@ -5,9 +5,6 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 dotenv.config();
 
-import { HfInference } from '@huggingface/inference'
-
-const inference = new HfInference(process.env.HF_TOKEN);
 const app = express();
 
 app.use(cors());
@@ -92,8 +89,7 @@ app.post('/api/v1/scraper', async (req, res) => {
     }));
 
 
-    const out = await inference.chatCompletion({
-      model: "meta-llama/Meta-Llama-3-8B-Instruct",
+    const out = await axios.post('https://ai.hackclub.com/chat/completions', {
       messages: [
         {
           role: "system",
@@ -116,10 +112,8 @@ app.post('/api/v1/scraper', async (req, res) => {
           content: `These are the snippets of reviews about ${productData.title}. Reviews: ${reviews
             .map((review) => review.snippet)
             .join(' ')}`
-        },
-      ],
-      max_tokens: 512,
-      temperature: 0.5,
+        }
+      ]
     });
 
     // Check if the last character is a closing curly brace, and if not, add it
