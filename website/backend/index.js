@@ -89,39 +89,88 @@ app.post('/api/v1/scraper', async (req, res) => {
     }));
 
 
-    const out = await axios.post('https://ai.hackclub.com/chat/completions', {
-      messages: [
-        {
-          role: "system",
-          content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. BE SPECIFIC. You must only respond with the valid JSON in this exact format:
-                {
-                  "pros": ["pro1", "pro2", "pro3"],
-                  "cons": ["con1", "con2", "con3"],
-                  "summary": "Your summary here",
-                  "detailed_review": "Your detailed review here",
-                  "rating": X
-                }
-            `
-        },
-        {
-          role: "system",
-          content: "Make sure you close the JSON object with a closing curly brace '}' and open it with an opening curly brace '{'. In fact, that should be the first character of your response."
-        },
-        {
-          role: "user",
-          content: `These are the snippets of reviews about ${productData.title}. Reviews: ${reviews
-            .map((review) => review.snippet)
-            .join(' ')}`
+    try {
+      const out = await axios.post('https://ai.hackclub.com/chat/completions', {
+        messages: [
+          {
+            role: "system",
+            content: `You are a reviewer with multiple snippets of reviews about a certain product. Using the reviews, articulate its pros, cons and other information to give users an unbiased perspective about the product, and especially highlight what other people have said about it from their personal experiences, while considering X as a number from 1 to 5 with one decimal point as a multiple of 0.5 for the rating. BE SPECIFIC. You must only respond with the valid JSON in this exact format:
+                  {
+                    "pros": ["pro1", "pro2", "pro3"],
+                    "cons": ["con1", "con2", "con3"],
+                    "summary": "Your summary here",
+                    "detailed_review": "Your detailed review here",
+                    "rating": X
+                  }
+              `
+          },
+          {
+            role: "system",
+            content: "Make sure you close the JSON object with a closing curly brace '}' and open it with an opening curly brace '{'. In fact, that should be the first character of your response."
+          },
+          {
+            role: "user",
+            content: `These are the snippets of reviews about ${productData.title}. Reviews: ${reviews
+              .map((review) => review.snippet)
+              .join(' ')}`
+          }
+        ]
+      });
+
+      // Log the response structure to debug
+      console.log("API Response structure:", JSON.stringify(out.data));
+
+      // Safely extract the content based on the response structure
+      let chatResponse;
+      if (out.data && out.data.choices && out.data.choices.length > 0 && out.data.choices[0].message) {
+        chatResponse = out.data.choices[0].message.content;
+      } else {
+        // If the structure doesn't match what we expect, try alternative paths
+        chatResponse = out.data.content || out.data.response || out.data;
+        console.log("Using alternative response structure");
+      }
+
+      // Make sure we have a string before trying to add a closing brace
+      if (typeof chatResponse === 'string') {
+        // Check if the last character is a closing curly brace, and if not, add it
+        if (chatResponse.trim().slice(-1) !== '}') {
+          chatResponse = chatResponse.trim() + '}';
         }
-      ]
-    });
 
-    // Check if the last character is a closing curly brace, and if not, add it
-    if (out.choices[0].message.content.slice(-1) !== '}') {
-      out.choices[0].message.content += '}';
+        // Try to parse the JSON
+        try {
+          const parsedResponse = JSON.parse(chatResponse);
+          res.json({
+            success: true,
+            data: {
+              alternatives: alternatives,
+              output: parsedResponse,
+            },
+          });
+        } catch (jsonError) {
+          console.error('Error parsing JSON response:', jsonError, 'Raw response:', chatResponse);
+          res.status(500).json({
+            success: false,
+            error: 'Could not parse the AI response as JSON.',
+            rawResponse: chatResponse
+          });
+        }
+      } else {
+        // Handle case where we don't have a string response
+        console.error('Unexpected response format:', chatResponse);
+        res.status(500).json({
+          success: false,
+          error: 'Received unexpected response format from AI service.',
+          rawResponse: chatResponse
+        });
+      }
+    } catch (error) {
+      console.error('Error calling AI service:', error.response?.data || error.message);
+      res.status(500).json({
+        success: false,
+        error: 'An error occurred while calling the AI service.',
+      });
     }
-
-    const chatResponse = out.choices[0].message.content;
 
     res.json({
       success: true,
