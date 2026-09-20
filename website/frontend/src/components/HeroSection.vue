@@ -67,7 +67,7 @@ const fetchProductReview = async () => {
     rawReviewStuff.value = null
     rawAlternatives.value = null
     try {
-        const response = await axios.post('https://echobackend.hackathonx.net/api/v1/scraper', { url: url.value });
+        const response = await axios.post('https://echobackend.karthik.lol/api/v1/scraper', { url: url.value });
         let var1 = response.data.data.output;
         rawReviewStuff.value = toRaw(var1);
         rawAlternatives.value = response.data.data.alternatives;
