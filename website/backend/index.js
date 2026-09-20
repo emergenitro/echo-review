@@ -281,6 +281,69 @@ async function generateReview(title, snippets) {
   return normalizeReview(JSON.parse(content));
 }
 
+class StageError extends Error {
+  constructor(stage, cause) {
+    super(stage);
+    this.stage = stage;
+    this.cause = cause;
+  }
+}
+
+function describeUpstream(error) {
+  const status = error?.response?.status;
+  const body = error?.response?.data;
+  const detail =
+    typeof body === 'string'
+      ? body.slice(0, 300)
+      : body
+        ? JSON.stringify(body).slice(0, 300)
+        : error?.code || error?.message;
+  return `status=${status || 'none'} detail=${detail}`;
+}
+
+async function runStage(stage, fn) {
+  try {
+    return await fn();
+  } catch (error) {
+    throw new StageError(stage, error);
+  }
+}
+
+const googleKeyPairs = [
+  { key: process.env.GOOGLE_API_KEY, cx: process.env.GOOGLE_SEARCH_ENGINE_ID },
+  { key: process.env.GOOGLE_API2, cx: process.env.GOOGLE_SEARCH_ENGINE_ID2 },
+].filter((pair) => pair.key && pair.cx);
+
+function buildSearchURL(query, pair) {
+  return (
+    'https://www.googleapis.com/customsearch/v1?q=' +
+    encodeURIComponent(query) +
+    '&key=' +
+    encodeURIComponent(pair.key) +
+    '&cx=' +
+    encodeURIComponent(pair.cx)
+  );
+}
+
+async function googleSearch(queries) {
+  let lastError;
+  for (const pair of googleKeyPairs) {
+    try {
+      return await Promise.all(
+        queries.map((query) =>
+          axios.get(buildSearchURL(query, pair), { timeout: SEARCH_TIMEOUT_MS })
+        )
+      );
+    } catch (error) {
+      lastError = error;
+      const status = error?.response?.status;
+      console.error('Google Custom Search failed:', describeUpstream(error));
+      if (status !== 429 && status !== 403) break;
+    }
+  }
+  throw lastError;
+}
+
 app.post('/api/v1/scraper', scraperLimiter, async (req, res) => {
   const { url: targetUrl, error: urlError } = parseTargetUrl(req.body?.url);
   if (urlError) {
@@ -297,9 +360,7 @@ app.post('/api/v1/scraper', scraperLimiter, async (req, res) => {
     return res.status(500).json({ success: false, error: 'Scraper API key is not configured.' });
   }
 
-  const googleSearchAPIKey = process.env.GOOGLE_API_KEY;
-  const googleSearchEngineID = process.env.GOOGLE_SEARCH_ENGINE_ID;
-  if (!googleSearchAPIKey || !googleSearchEngineID) {
+  if (googleKeyPairs.length === 0) {
     return res
       .status(500)
       .json({ success: false, error: 'Google API key or Search Engine ID is not configured.' });
@@ -312,12 +373,35 @@ app.post('/api/v1/scraper', scraperLimiter, async (req, res) => {
       '&url=' +
       encodeURIComponent(cacheKey);
 
-    const response = await axios.get(scraperAPIURL, {
-      timeout: SCRAPE_TIMEOUT_MS,
-      maxContentLength: 8 * 1024 * 1024,
-      responseType: 'text',
-      transformResponse: [(data) => data],
-    });
+    const response = await runStage('scrape', () =>
+      axios.get(scraperAPIURL, {
+        timeout: SCRAPE_TIMEOUT_MS,
+        maxContentLength: 8 * 1024 * 1024,
+        responseType: 'text',
+        transformResponse: [(data) => data],
+        validateStatus: () => true,
+      })
+    );
+
+    if (response.status !== 200) {
+      const upstreamIsOurs = response.status === 401 || response.status === 429 || response.status >= 500;
+      console.error(
+        'scrape stage non-200:',
+        `status=${response.status}`,
+        `target=${targetUrl.hostname}`,
+        upstreamIsOurs ? 'scraperapi-side' : 'target-side'
+      );
+      if (upstreamIsOurs) {
+        return res
+          .status(502)
+          .json({ success: false, stage: 'scrape', error: 'The scraping service is unavailable right now.' });
+      }
+      return res.status(422).json({
+        success: false,
+        stage: 'scrape',
+        error: 'That product page could not be loaded. It may be unavailable, removed, or region locked.',
+      });
+    }
 
     const $ = cheerio.load(response.data);
 
@@ -326,27 +410,30 @@ app.post('/api/v1/scraper', scraperLimiter, async (req, res) => {
     if (productData.title.includes('Amazon Prime')) {
       productData.title = $('h1').eq(1).text().trim() || 'N/A';
     }
+    if (!productData.title || productData.title === 'N/A') {
+      productData.title =
+        $('#productTitle').text().trim() ||
+        $('meta[property="og:title"]').attr('content')?.trim() ||
+        'N/A';
+    }
     productData.price = $('#priceblock_ourprice, #priceblock_dealprice').text().trim() || 'N/A';
     productData.description = $('#productDescription p').text().trim() || 'N/A';
     productData.image = $('#landingImage').attr('src') || 'N/A';
 
     const safeTitle = sanitizeUntrusted(productData.title, MAX_TITLE_CHARS);
     if (!safeTitle || safeTitle === 'N/A') {
-      return res.json({ success: true, data: { product: productData } });
+      console.error('scrape stage found no product title:', `target=${targetUrl.hostname}`);
+      return res.status(422).json({
+        success: false,
+        stage: 'scrape',
+        error: 'No product title could be found on that page.',
+        data: { product: productData },
+      });
     }
 
-    const buildSearchURL = (query) =>
-      'https://www.googleapis.com/customsearch/v1?q=' +
-      encodeURIComponent(query) +
-      '&key=' +
-      encodeURIComponent(googleSearchAPIKey) +
-      '&cx=' +
-      encodeURIComponent(googleSearchEngineID);
-
-    const [googleResponse, alternativesResponse] = await Promise.all([
-      axios.get(buildSearchURL(safeTitle + ' reviews'), { timeout: SEARCH_TIMEOUT_MS }),
-      axios.get(buildSearchURL(safeTitle + ' shopping alternatives'), { timeout: SEARCH_TIMEOUT_MS }),
-    ]);
+    const [googleResponse, alternativesResponse] = await runStage('search', () =>
+      googleSearch([safeTitle + ' reviews', safeTitle + ' shopping alternatives'])
+    );
 
     const searchResults = googleResponse.data.items || [];
     const alternativeResults = alternativesResponse.data.items || [];
@@ -365,25 +452,26 @@ app.post('/api/v1/scraper', scraperLimiter, async (req, res) => {
       budget -= snippet.length;
     }
 
-    const output = await generateReview(safeTitle, snippets);
+    const output = await runStage('ai', () => generateReview(safeTitle, snippets));
     const payload = { alternatives, output };
     cacheSet(cacheKey, payload);
 
     return res.json({ success: true, data: payload });
   } catch (error) {
-    if (
-      error instanceof OpenAI.APIError ||
-      ['content_filtered', 'empty_completion'].includes(error.message)
-    ) {
-      console.error('AI service error:', error.status || '', error.message);
+    const stage = error instanceof StageError ? error.stage : 'unknown';
+    const cause = error instanceof StageError ? error.cause : error;
+
+    if (stage === 'ai') {
+      console.error('AI stage failed:', cause?.status || '', cause?.message, describeUpstream(cause));
       return res
         .status(502)
-        .json({ success: false, error: 'An error occurred while generating the review.' });
+        .json({ success: false, stage, error: 'An error occurred while generating the review.' });
     }
-    console.error('Error fetching or parsing data:', error.message);
+
+    console.error(`${stage} stage failed:`, describeUpstream(cause));
     return res
       .status(502)
-      .json({ success: false, error: 'An error occurred while fetching product or review data.' });
+      .json({ success: false, stage, error: 'An error occurred while fetching product or review data.' });
   }
 });
 
