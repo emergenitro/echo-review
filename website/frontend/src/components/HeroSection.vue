@@ -36,7 +36,7 @@
                     <p><strong  class="text-xl my-4 bg-gradient-to-r from-green-500 to-green-600 inline-block text-transparent bg-clip-text">Alternatives</strong></p>
                     <ul class="list-disc list-inside">
                         <li class="hover:text-green-600" v-for="alternative in rawAlternatives">
-                            <a href="{{ alternative.link }}" class="text-green hover:text-green-600">{{ alternative.title }}</a>
+                            <a :href="alternative.link" target="_blank" rel="noopener noreferrer" class="text-green hover:text-green-600">{{ alternative.title }}</a>
                         </li>
                     </ul>
                 </div>
