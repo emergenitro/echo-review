@@ -309,35 +309,31 @@ async function runStage(stage, fn) {
   }
 }
 
-const googleKeyPairs = [
-  { key: process.env.GOOGLE_API_KEY, cx: process.env.GOOGLE_SEARCH_ENGINE_ID },
-  { key: process.env.GOOGLE_API2, cx: process.env.GOOGLE_SEARCH_ENGINE_ID2 },
-].filter((pair) => pair.key && pair.cx);
+const tavilyApiKeys = [process.env.TAVILY_API_KEY, process.env.TAVILY_API_KEY2].filter(Boolean);
 
-function buildSearchURL(query, pair) {
-  return (
-    'https://www.googleapis.com/customsearch/v1?q=' +
-    encodeURIComponent(query) +
-    '&key=' +
-    encodeURIComponent(pair.key) +
-    '&cx=' +
-    encodeURIComponent(pair.cx)
+async function tavilySearchOne(query, apiKey) {
+  return axios.post(
+    'https://api.tavily.com/search',
+    { query, max_results: 10 },
+    {
+      timeout: SEARCH_TIMEOUT_MS,
+      headers: {
+        Authorization: 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+      },
+    }
   );
 }
 
-async function googleSearch(queries) {
+async function webSearch(queries) {
   let lastError;
-  for (const pair of googleKeyPairs) {
+  for (const apiKey of tavilyApiKeys) {
     try {
-      return await Promise.all(
-        queries.map((query) =>
-          axios.get(buildSearchURL(query, pair), { timeout: SEARCH_TIMEOUT_MS })
-        )
-      );
+      return await Promise.all(queries.map((query) => tavilySearchOne(query, apiKey)));
     } catch (error) {
       lastError = error;
       const status = error?.response?.status;
-      console.error('Google Custom Search failed:', describeUpstream(error));
+      console.error('Tavily search failed:', describeUpstream(error));
       if (status !== 429 && status !== 403) break;
     }
   }
@@ -360,10 +356,10 @@ app.post('/api/v1/scraper', scraperLimiter, async (req, res) => {
     return res.status(500).json({ success: false, error: 'Scraper API key is not configured.' });
   }
 
-  if (googleKeyPairs.length === 0) {
+  if (tavilyApiKeys.length === 0) {
     return res
       .status(500)
-      .json({ success: false, error: 'Google API key or Search Engine ID is not configured.' });
+      .json({ success: false, error: 'Tavily API key is not configured.' });
   }
 
   try {
@@ -431,22 +427,22 @@ app.post('/api/v1/scraper', scraperLimiter, async (req, res) => {
       });
     }
 
-    const [googleResponse, alternativesResponse] = await runStage('search', () =>
-      googleSearch([safeTitle + ' reviews', safeTitle + ' shopping alternatives'])
+    const [searchResponse, alternativesResponse] = await runStage('search', () =>
+      webSearch([safeTitle + ' reviews', safeTitle + ' shopping alternatives'])
     );
 
-    const searchResults = googleResponse.data.items || [];
-    const alternativeResults = alternativesResponse.data.items || [];
+    const searchResults = searchResponse.data.results || [];
+    const alternativeResults = alternativesResponse.data.results || [];
 
     const alternatives = alternativeResults.slice(0, 2).map((result) => ({
       title: sanitizeUntrusted(result.title, MAX_TITLE_CHARS),
-      link: typeof result.link === 'string' ? result.link.slice(0, MAX_URL_LENGTH) : '',
+      link: typeof result.url === 'string' ? result.url.slice(0, MAX_URL_LENGTH) : '',
     }));
 
     let budget = MAX_REVIEW_BLOCK_CHARS;
     const snippets = [];
     for (const result of searchResults.slice(0, MAX_SNIPPETS)) {
-      const snippet = sanitizeUntrusted(result.snippet, MAX_SNIPPET_CHARS);
+      const snippet = sanitizeUntrusted(result.content, MAX_SNIPPET_CHARS);
       if (!snippet || snippet.length > budget) continue;
       snippets.push(snippet);
       budget -= snippet.length;
